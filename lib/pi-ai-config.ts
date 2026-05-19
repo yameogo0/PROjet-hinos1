@@ -4,11 +4,12 @@
 // 🔑 Utilise la variable d'environnement AI_GATEWAY_API_KEY
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY || "";
 
-// 🌐 Configuration AI Gateway
+// 🌐 Configuration AI Gateway (URL corrigée)
 export const AI_GATEWAY_CONFIG = {
   apiKey: AI_GATEWAY_API_KEY,
   model: "groq/llama-3.3-70b-versatile", // Format: provider/model
-  apiUrl: "https://ai-gateway.vercel.app/v1/chat/completions",
+  // ✅ URL CORRECTE pour Vercel AI Gateway
+  apiUrl: "https://api.vercel.ai/v1/chat/completions",
   generationConfig: {
     temperature: 0.7,
     max_tokens: 800,
@@ -100,7 +101,7 @@ export async function callAIGatewayAPI(userMessage: string, history?: any[]) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Erreur AI Gateway:", error);
+      console.error("Erreur AI Gateway:", response.status, error);
       return "❌ Désolé, l'assistant est momentanément indisponible. Veuillez réessayer plus tard.";
     }
 
