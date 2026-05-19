@@ -1,15 +1,15 @@
 // lib/pi-ai-config.ts
-// Configuration pour Hinos IA avec AI Gateway (Groq via AI Gateway)
+// Configuration pour Hinos IA avec Vercel AI Gateway
 
 // 🔑 Utilise la variable d'environnement AI_GATEWAY_API_KEY
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY || "";
 
-// 🌐 Configuration AI Gateway (URL corrigée)
+// 🌐 Configuration AI Gateway (URL CORRECTE selon documentation Vercel)
 export const AI_GATEWAY_CONFIG = {
   apiKey: AI_GATEWAY_API_KEY,
   model: "groq/llama-3.3-70b-versatile", // Format: provider/model
-  // ✅ URL CORRECTE pour Vercel AI Gateway
-  apiUrl: "https://api.vercel.ai/v1/chat/completions",
+  // ✅ URL CORRECTE depuis la documentation Vercel
+  apiUrl: "https://gateway.ai.vercel.ai/v1/chat/completions",
   generationConfig: {
     temperature: 0.7,
     max_tokens: 800,
