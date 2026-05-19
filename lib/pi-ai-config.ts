@@ -1,19 +1,14 @@
 // lib/pi-ai-config.ts
-// Configuration pour Hinos IA avec Groq (Llama 3.3)
+// Configuration pour Hinos IA avec AI Gateway (Groq via AI Gateway)
 
-// 🔑 INSÉREZ VOTRE CLÉ API ICI (remplacez "votre_clé_ici")
-const GROQ_API_KEY = "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";
+// 🔑 Utilise la variable d'environnement AI_GATEWAY_API_KEY
+const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY || "";
 
-// Vérification que la clé existe
-if (!GROQ_API_KEY || GROQ_API_KEY === "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") {
-  console.error("❌ Erreur: Veuillez insérer votre clé API Groq dans le fichier pi-ai-config.ts");
-}
-
-// Configuration pour l'API Groq
-export const GROQ_CONFIG = {
-  apiKey: GROQ_API_KEY,
-  model: "llama3-70b-8192",  // Llama 3.3 70B
-  apiUrl: "https://api.groq.com/openai/v1/chat/completions",
+// 🌐 Configuration AI Gateway
+export const AI_GATEWAY_CONFIG = {
+  apiKey: AI_GATEWAY_API_KEY,
+  model: "groq/llama-3.3-70b-versatile", // Format: provider/model
+  apiUrl: "https://ai-gateway.vercel.app/v1/chat/completions",
   generationConfig: {
     temperature: 0.7,
     max_tokens: 800,
@@ -69,10 +64,11 @@ Tu représentes HOSNI, une application innovante qui opère dans l'agriculture, 
 
 Réponds toujours en français, de manière claire, structurée et utile.`;
 
-// Fonction pour appeler l'API Groq
-export async function callGroqAPI(userMessage: string, history?: any[]) {
-  if (!GROQ_API_KEY || GROQ_API_KEY === "votre_clé_ici") {
-    throw new Error("❌ Clé API Groq manquante. Veuillez l'insérer dans le fichier pi-ai-config.ts");
+// Fonction pour appeler l'API AI Gateway
+export async function callAIGatewayAPI(userMessage: string, history?: any[]) {
+  if (!AI_GATEWAY_API_KEY) {
+    console.error("❌ Clé API AI Gateway manquante");
+    return "❌ Configuration API manquante. Veuillez contacter l'administrateur.";
   }
 
   // Construction du message complet avec le contexte
@@ -86,29 +82,37 @@ export async function callGroqAPI(userMessage: string, history?: any[]) {
     messages.unshift(...history);
   }
 
-  const response = await fetch(GROQ_CONFIG.apiUrl, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${GROQ_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: GROQ_CONFIG.model,
-      messages: messages,
-      temperature: GROQ_CONFIG.generationConfig.temperature,
-      max_tokens: GROQ_CONFIG.generationConfig.max_tokens,
-      top_p: GROQ_CONFIG.generationConfig.top_p
-    })
-  });
+  try {
+    const response = await fetch(AI_GATEWAY_CONFIG.apiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${AI_GATEWAY_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: AI_GATEWAY_CONFIG.model,
+        messages: messages,
+        temperature: AI_GATEWAY_CONFIG.generationConfig.temperature,
+        max_tokens: AI_GATEWAY_CONFIG.generationConfig.max_tokens,
+        top_p: AI_GATEWAY_CONFIG.generationConfig.top_p
+      })
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`❌ Erreur Groq API: ${response.status} - ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Erreur AI Gateway:", error);
+      return "❌ Désolé, l'assistant est momentanément indisponible. Veuillez réessayer plus tard.";
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Je n'ai pas pu générer une réponse.";
+  } catch (error) {
+    console.error("Erreur:", error);
+    return "❌ Erreur de connexion. Vérifiez votre connexion internet.";
   }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "Je n'ai pas pu générer une réponse.";
 }
 
-// Export par défaut pour garder la compatibilité
-export const callGeminiAPI = callGroqAPI;
+// Exports pour compatibilité existante
+export const callGroqAPI = callAIGatewayAPI;
+export const callGeminiAPI = callAIGatewayAPI;
+export const callAIAPI = callAIGatewayAPI;
