@@ -1,9 +1,14 @@
-import { groq } from '@ai-sdk/groq'
 import { generateText } from 'ai'
 import { NextRequest } from 'next/server'
 
-// 🔑 Utilise la variable d'environnement GROQ_API_KEY depuis les Vars de v0
-const GROQ_API_KEY = process.env.GROQ_API_KEY
+// 🔑 Utilise la variable d'environnement AI_GATEWAY_API_KEY depuis les Vars de v0
+const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY
+
+// 🌐 Configuration AI Gateway (Groq via AI Gateway)
+const AI_GATEWAY_CONFIG = {
+  apiUrl: "https://ai-gateway.vercel.app/v1/chat/completions", // AI Gateway Vercel
+  model: "groq/llama-3.3-70b-versatile", // Format : provider/model
+}
 
 // 🔍 Fonction pour détecter automatiquement la langue
 function detectLanguage(text: string): string {
@@ -55,30 +60,48 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Message requis" }, { status: 400 })
     }
 
-    console.log("[v0] GROQ_API_KEY disponible:", !!GROQ_API_KEY)
-    console.log("[v0] Longueur de la clé:", GROQ_API_KEY?.length)
-    console.log("[v0] Première partie:", GROQ_API_KEY?.substring(0, 10))
+    console.log("[AI Gateway] AI_GATEWAY_API_KEY disponible:", !!AI_GATEWAY_API_KEY)
+    console.log("[AI Gateway] Longueur de la clé:", AI_GATEWAY_API_KEY?.length)
 
-    if (!GROQ_API_KEY) {
-      console.error("❌ Erreur: GROQ_API_KEY non trouvée dans les variables d'environnement")
-      console.error("[v0] Variables d'environnement disponibles:", Object.keys(process.env).filter(key => key.includes('GROQ') || key.includes('API')))
+    if (!AI_GATEWAY_API_KEY) {
+      console.error("❌ Erreur: AI_GATEWAY_API_KEY non trouvée dans les variables d'environnement")
       return Response.json({ 
-        response: "❌ Erreur de configuration. La clé API Groq n'est pas disponible."
+        response: "❌ Erreur de configuration. La clé API AI Gateway n'est pas disponible."
       }, { status: 500 })
     }
 
     const systemPrompt = getSystemPrompt(language)
 
-    process.env.GROQ_API_KEY = GROQ_API_KEY
-
-    const { text } = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
-      prompt: message,
-      system: systemPrompt,
-      temperature: 0.7,
+    // Appel direct à AI Gateway via fetch
+    const response = await fetch(AI_GATEWAY_CONFIG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AI_GATEWAY_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: AI_GATEWAY_CONFIG.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
+      })
     })
 
-    console.log("✅ Réponse générée par Groq")
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("❌ Erreur AI Gateway:", response.status, errorText)
+      return Response.json({ 
+        response: getErrorMessage(language)
+      }, { status: response.status })
+    }
+
+    const data = await response.json()
+    const text = data.choices?.[0]?.message?.content || "Je n'ai pas pu générer une réponse."
+
+    console.log("✅ Réponse générée via AI Gateway (Groq)")
     return Response.json({ response: text })
 
   } catch (error: any) {
